@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ export default function HistoryScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const listRef = useRef<FlatList<Reset> | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -39,6 +40,11 @@ export default function HistoryScreen() {
     useCallback(() => {
       setLoading(true);
       void load();
+      // Snap list to top whenever the tab regains focus.
+      requestAnimationFrame(() => {
+        listRef.current?.scrollToOffset({ offset: 0, animated: false });
+      });
+      return () => {};
     }, [load]),
   );
 
