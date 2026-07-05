@@ -1,0 +1,32 @@
+{
+  "summary": "Frontend-only fix VERIFIED for check-in / result / email / copy / scroll-to-top flows. Backend was stopped (sudo supervisorctl stop backend) during the entire test — 0 network requests to /api/* were captured, confirming the app is fully static. Both deterministic patterns matched the spec: dataset A -> 'Recupero insufficiente', dataset B -> 'Buona base da mantenere'. All 8 result sections render (result-pattern, result-summary, result-worked, result-friction, result-adjustment, result-micro-action, result-avoidance, result-disclaimer). Copy button, invalid email error ('Inserisci un'email valida.'), and valid email success ('Ricevuta. Ti scriveremo solo quando serve davvero.') all work with no backend. Scroll-to-top verified for step 1->2->3->4 transitions (window.scrollY=0 after each Avanti), for the /result screen on load, and for the check-in screen after tapping 'Rifai il check-in'.\n\nCRITICAL BUG STILL PRESENT: The Storico (History) tab crashes with a red-screen 'Uncaught Error: listRef is not defined' at app/(tabs)/history.tsx:90 — the main agent added `ref={listRef}` to the FlatList but never declared the ref (missing `useRef` import + `const listRef = useRef<FlatList<Reset>|null>(null)`), and never wired the scroll-to-top-on-focus logic promised in the review request. As a result: (a) the History tab is completely broken when it has items, (b) Bug 2 requirement #4 ('Storico tab should open at its top') cannot be validated. The rest of Bug 2's requirements pass.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "app/(tabs)/history.tsx (FlatList)", "issue": "Red-screen crash 'listRef is not defined' at line 90. The `ref={listRef}` was added but `listRef` is never declared and `useRef` is not imported. History tab is unusable as soon as it contains at least one reset.", "testID": "n/a (whole screen crashes)", "priority": "CRITICAL"}
+    ],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "Global styles", "issue": "Console warning: '\"shadow*\" style props are deprecated. Use \"boxShadow\".' Coming from theme.shadow.* usage. Not blocking but should be migrated. Reference: /app/frontend/src/theme.ts (shadow tokens)"},
+      {"component": "Pressable / touchable wrappers", "issue": "Console warning: 'props.pointerEvents is deprecated. Use style.pointerEvents' repeated on load. Likely from a third-party dep, but worth reviewing. Reference: on initial mount"}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Fix app/(tabs)/history.tsx: import { useCallback, useRef, useState } from 'react'; add `const listRef = useRef<FlatList<Reset> | null>(null);`; inside useFocusEffect (or a new effect on items change) call `requestAnimationFrame(() => listRef.current?.scrollToOffset({ offset: 0, animated: false }));`. Currently the tab red-screens as soon as any reset exists.",
+    "Optional: migrate deprecated shadow* style props to boxShadow across theme.ts, and replace props.pointerEvents with style.pointerEvents to silence RN 0.74+ warnings."
+  ],
+  "critical_code_review_comments": [
+    "app/(tabs)/history.tsx uses `listRef` without declaration/import — must be a compile-time regression introduced with the scroll-to-top fix.",
+    "src/api.ts and src/reset-logic.ts look clean, deterministic, and dependency-free (no fetch, no env). Storage is capped (200 resets / 500 leads). Good.",
+    "checkin.tsx and result.tsx correctly double-tick scrollTo(0) inside requestAnimationFrame to defeat mobile-browser scroll restoration. Verified working."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (not tested per request)", "frontend": "~90% — Bug 1 fully passes, Bug 2 passes 3/4 (History tab crash blocks item #4)"},
+  "seed_data_creation": "Two resets were persisted to AsyncStorage during the test (dataset A 'Recupero insufficiente' + dataset B 'Buona base da mantenere') and one email lead 'test@example.it'. No server-side seed data.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend was stopped for the test (sudo supervisorctl stop backend) and restarted afterwards. To reproduce the history crash: complete any check-in, then tap the Storico tab — you'll get the RN red screen. Once main agent declares `listRef` and wires scrollToOffset, retest: (1) History renders items from AsyncStorage; (2) tapping Storico from a scrolled state on another tab opens Storico scrolled to the top. TestID conventions: ScoreStepper -> `{prefix}-{n}` (e.g. energy-2). ChoiceChips -> `{prefix}-{value.replace(/\\s+/g,'-').toLowerCase()}` (e.g. movement-camminata-leggera, light-quasi-nulla, light-sì,-buona, time-5-minuti). Do NOT use `-score-` in ScoreStepper testIDs.",
+  "rca_of_issue": "Bug: 'listRef is not defined' in app/(tabs)/history.tsx:90. RCA: The main agent's diff added `<FlatList ref={listRef} ... />` when converting history.tsx to reflect scroll-to-top-on-focus, but omitted (a) adding `useRef` to the react import, and (b) declaring `const listRef = useRef<FlatList<Reset>|null>(null);` at the top of the component. There is also no effect that actually calls scrollToOffset on focus, so even after fixing the ReferenceError the scroll-to-top behavior would still be missing on the History tab. Reproduction: stop backend -> open app on 390x844 -> Inizia il reset -> complete any 4-step check-in -> tap Storico tab -> red screen 'listRef is not defined' at history.tsx:90:16. Mitigation: declare the ref and wire scrollToOffset({offset:0, animated:false}) inside useFocusEffect / after items load."
+}

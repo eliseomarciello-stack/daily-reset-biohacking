@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -43,11 +43,26 @@ export default function CheckinScreen() {
   const [form, setForm] = useState<Form>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const scrollRef = useRef<ScrollView | null>(null);
 
-  // Reset the form each time the user (re)enters the tab
+  const scrollToTop = () => {
+    // Two paints: one immediate, one after layout settles — makes mobile browsers
+    // reliably jump to the top instead of preserving the previous position.
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+    });
+  };
+
+  // Scroll to top whenever the step changes.
+  useEffect(() => {
+    scrollToTop();
+  }, [step]);
+
+  // Reset flow when the tab regains focus so a "Nuovo Reset" tap always starts fresh.
   useFocusEffect(
     useCallback(() => {
-      // no-op: keep progress while user is in the flow
+      scrollToTop();
       return () => {};
     }, []),
   );
@@ -117,6 +132,7 @@ export default function CheckinScreen() {
         </View>
 
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}

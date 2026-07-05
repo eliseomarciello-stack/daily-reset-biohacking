@@ -87,6 +87,7 @@ export default function HistoryScreen() {
         </View>
       ) : (
         <FlatList
+          ref={listRef}
           data={items}
           keyExtractor={(it) => it.id}
           contentContainerStyle={styles.listContent}

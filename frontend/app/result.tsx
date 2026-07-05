@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -32,6 +32,19 @@ export default function ResultScreen() {
   >({ kind: 'idle' });
 
   const [copyState, setCopyState] = useState<'idle' | 'copied'>('idle');
+  const scrollRef = useRef<ScrollView | null>(null);
+
+  const scrollToTop = () => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+    });
+  };
+
+  useEffect(() => {
+    // Force top when the screen mounts and when the reset is loaded.
+    scrollToTop();
+  }, [reset?.id]);
 
   useEffect(() => {
     let mounted = true;
@@ -123,7 +136,7 @@ export default function ResultScreen() {
           <View style={{ width: 36 }} />
         </View>
 
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <View style={styles.container}>
             {/* Pattern hero */}
             <View style={[styles.patternHero, theme.shadow.lifted]} testID="result-pattern">

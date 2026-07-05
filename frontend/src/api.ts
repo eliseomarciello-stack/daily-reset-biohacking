@@ -1,32 +1,14 @@
-import Constants from 'expo-constants';
+// Frontend-only "API" — no network, no backend, no env vars required.
+// Storage: AsyncStorage (native) / IndexedDB via the storage util (web).
+// The exported `api` shape is unchanged so screens don't need refactor.
 
-const backendUrl =
-  process.env.EXPO_PUBLIC_BACKEND_URL ||
-  (Constants.expoConfig?.extra as any)?.EXPO_PUBLIC_BACKEND_URL;
+import { storage } from '@/src/utils/storage';
+import { generateReset, ResetAnswers } from '@/src/reset-logic';
 
-if (!backendUrl) {
-  // Fail fast — no fallback URLs by design.
-  // eslint-disable-next-line no-console
-  console.warn('EXPO_PUBLIC_BACKEND_URL is not defined');
-}
+const RESETS_KEY = 'daily_reset.resets.v1';
+const LEADS_KEY = 'daily_reset.email_leads.v1';
 
-export const API_BASE = `${backendUrl}/api`;
-
-export type ResetInput = {
-  energy_score: number;
-  focus_score: number;
-  stress_score: number;
-  sleep_score: number;
-  movement_type: string;
-  body_feeling: string;
-  nutrition_status: string;
-  cravings_level: string;
-  caffeine_use: string;
-  natural_light: string;
-  routine_done: string;
-  improvement_area: string;
-  available_time: string;
-};
+export type ResetInput = ResetAnswers;
 
 export type Reset = ResetInput & {
   id: string;
@@ -40,29 +22,79 @@ export type Reset = ResetInput & {
   generated_avoidance: string;
 };
 
-async function req<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers || {}),
-    },
+export type EmailLead = {
+  id: string;
+  email: string;
+  created_at: string;
+};
+
+// ---------- helpers ----------
+function uuid(): string {
+  // RFC4122 v4 without deps — sufficient for local ids.
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
   });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(text || `Errore ${res.status}`);
-  }
-  return res.json() as Promise<T>;
 }
 
+async function readList<T>(key: string): Promise<T[]> {
+  const raw = await storage.getItem<string>(key, '');
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as T[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function writeList<T>(key: string, list: T[]): Promise<void> {
+  await storage.setItem<string>(key, JSON.stringify(list));
+}
+
+// ---------- public api ----------
 export const api = {
-  createReset: (input: ResetInput) =>
-    req<Reset>('/resets', { method: 'POST', body: JSON.stringify(input) }),
-  listResets: () => req<Reset[]>('/resets'),
-  getReset: (id: string) => req<Reset>(`/resets/${id}`),
-  submitEmailLead: (email: string) =>
-    req<{ id: string; email: string; created_at: string }>('/email-leads', {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-    }),
+  async createReset(input: ResetInput): Promise<Reset> {
+    const generated = generateReset(input);
+    const reset: Reset = {
+      id: uuid(),
+      created_at: new Date().toISOString(),
+      ...input,
+      ...generated,
+    };
+    const list = await readList<Reset>(RESETS_KEY);
+    list.unshift(reset);
+    // Cap history to a sane size to avoid unbounded local storage growth.
+    const capped = list.slice(0, 200);
+    await writeList(RESETS_KEY, capped);
+    return reset;
+  },
+
+  async listResets(): Promise<Reset[]> {
+    const list = await readList<Reset>(RESETS_KEY);
+    return list.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  },
+
+  async getReset(id: string): Promise<Reset> {
+    const list = await readList<Reset>(RESETS_KEY);
+    const found = list.find((r) => r.id === id);
+    if (!found) throw new Error('Reset non trovato');
+    return found;
+  },
+
+  async submitEmailLead(email: string): Promise<EmailLead> {
+    const normalized = email.trim().toLowerCase();
+    const list = await readList<EmailLead>(LEADS_KEY);
+    const existing = list.find((l) => l.email === normalized);
+    if (existing) return existing;
+    const lead: EmailLead = {
+      id: uuid(),
+      email: normalized,
+      created_at: new Date().toISOString(),
+    };
+    list.unshift(lead);
+    await writeList(LEADS_KEY, list.slice(0, 500));
+    return lead;
+  },
 };
