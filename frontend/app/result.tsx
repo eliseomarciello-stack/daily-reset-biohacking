@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import { api, Reset } from '@/src/api';
 export default function ResultScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const scrollRef = useRef<ScrollView>(null);
 
   const [reset, setReset] = useState<Reset | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,6 +34,12 @@ export default function ResultScreen() {
 
   const [copyState, setCopyState] = useState<'idle' | 'copied'>('idle');
 
+  const scrollToTop = useCallback((animated = true) => {
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated });
+    }, 50);
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -43,7 +50,10 @@ export default function ResultScreen() {
       }
       try {
         const r = await api.getReset(id);
-        if (mounted) setReset(r);
+        if (mounted) {
+          setReset(r);
+          scrollToTop(false);
+        }
       } catch {
         if (mounted) setError('Qualcosa non ha funzionato. Riprova tra poco.');
       } finally {
@@ -53,7 +63,11 @@ export default function ResultScreen() {
     return () => {
       mounted = false;
     };
-  }, [id]);
+  }, [id, scrollToTop]);
+
+  useEffect(() => {
+    if (!loading && reset) scrollToTop(false);
+  }, [loading, reset, scrollToTop]);
 
   const handleCopy = async () => {
     if (!reset) return;
@@ -123,7 +137,7 @@ export default function ResultScreen() {
           <View style={{ width: 36 }} />
         </View>
 
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <View style={styles.container}>
             {/* Pattern hero */}
             <View style={[styles.patternHero, theme.shadow.lifted]} testID="result-pattern">
@@ -230,7 +244,7 @@ export default function ResultScreen() {
               )}
               {emailStatus.kind === 'ok' && (
                 <Text style={styles.emailOk} testID="email-ok">
-                  Ricevuta. Ti scriveremo solo quando serve davvero.
+                  Email salvata in locale per il test. Per una raccolta reale collegheremo un form esterno.
                 </Text>
               )}
               <Pressable

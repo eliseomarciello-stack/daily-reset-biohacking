@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -39,18 +39,29 @@ const TOTAL_STEPS = 4;
 
 export default function CheckinScreen() {
   const router = useRouter();
+  const scrollRef = useRef<ScrollView>(null);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<Form>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Reset the form each time the user (re)enters the tab
+  const scrollToTop = useCallback((animated = true) => {
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated });
+    }, 50);
+  }, []);
+
+  // Keep progress while user is in the flow, but always reopen the tab from the top.
   useFocusEffect(
     useCallback(() => {
-      // no-op: keep progress while user is in the flow
+      scrollToTop(false);
       return () => {};
-    }, []),
+    }, [scrollToTop]),
   );
+
+  useEffect(() => {
+    scrollToTop();
+  }, [step, scrollToTop]);
 
   const update = <K extends keyof ResetInput>(key: K, value: ResetInput[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -71,13 +82,17 @@ export default function CheckinScreen() {
       setError('Completa questa risposta per generare il tuo reset.');
       return;
     }
-    if (step < TOTAL_STEPS) setStep(step + 1);
-    else void submit();
+    if (step < TOTAL_STEPS) {
+      setStep(step + 1);
+      scrollToTop();
+    } else void submit();
   };
 
   const goBack = () => {
-    if (step > 1) setStep(step - 1);
-    else router.replace('/(tabs)');
+    if (step > 1) {
+      setStep(step - 1);
+      scrollToTop();
+    } else router.replace('/(tabs)');
   };
 
   const submit = async () => {
@@ -117,6 +132,7 @@ export default function CheckinScreen() {
         </View>
 
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
