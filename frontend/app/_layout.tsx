@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { LogBox, StatusBar } from 'react-native';
+import { LogBox, Platform, StatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -21,6 +21,30 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded, error]);
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const doc = typeof globalThis !== 'undefined' ? (globalThis as any).document : undefined;
+    if (!doc) return;
+
+    doc.documentElement.setAttribute('lang', 'it');
+    doc.documentElement.setAttribute('translate', 'no');
+    doc.documentElement.classList.add('notranslate');
+    doc.body?.setAttribute('translate', 'no');
+    doc.body?.classList.add('notranslate');
+
+    const ensureMeta = (name: string, content: string) => {
+      let meta = doc.querySelector(`meta[name="${name}"]`);
+      if (!meta) {
+        meta = doc.createElement('meta');
+        meta.setAttribute('name', name);
+        doc.head.appendChild(meta);
+      }
+      meta.setAttribute('content', content);
+    };
+
+    ensureMeta('google', 'notranslate');
+  }, []);
+
 
   if (!loaded && !error) return null;
 

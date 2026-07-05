@@ -26,3 +26,12 @@ Impostazioni Vercel consigliate:
 
 Nota:
 La raccolta email è salvata solo localmente nel browser/dispositivo. Per una raccolta reale va collegato un form esterno o un servizio email marketing.
+
+
+## Anti auto-translation fix
+- Set the generated web HTML to Italian with `lang="it"`.
+- Added `translate="no"` and `notranslate` class on html/body.
+- Added Google notranslate meta tag.
+- Added runtime guard in root layout to restore Italian/notranslate attributes on web.
+- Added Vercel Content-Language: it header.
+- Changed the check-in progress label from “Step” to “Passo”.

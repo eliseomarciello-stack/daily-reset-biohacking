@@ -123,7 +123,7 @@ export default function CheckinScreen() {
             <Ionicons name="chevron-back" size={22} color={theme.color.text} />
           </Pressable>
           <View style={{ flex: 1 }}>
-            <Text style={styles.stepLabel} testID="checkin-step-label">Step {step} di {TOTAL_STEPS}</Text>
+            <Text style={styles.stepLabel} testID="checkin-step-label">Passo {step} di {TOTAL_STEPS}</Text>
             <View style={styles.progressTrack}>
               <View style={[styles.progressFill, { width: `${(step / TOTAL_STEPS) * 100}%` }]} />
             </View>
