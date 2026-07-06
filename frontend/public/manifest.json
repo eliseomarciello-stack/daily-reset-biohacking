@@ -1,0 +1,39 @@
+{
+  "name": "Daily Reset — Biohacking Quotidiano",
+  "short_name": "Daily Reset",
+  "description": "Il check-in serale di Biohacking Quotidiano per capire cosa ha funzionato oggi e cosa correggere domani.",
+  "lang": "it-IT",
+  "start_url": "/",
+  "scope": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#2F8C86",
+  "background_color": "#FAF8F2",
+  "categories": [
+    "health",
+    "lifestyle",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "/logo192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/maskable-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "prefer_related_applications": false
+}

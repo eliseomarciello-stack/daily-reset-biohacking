@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "Daily Reset",
+    "slug": "daily-reset-biohacking",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "frontend",
+    "scheme": "dailyreset",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -39,6 +39,7 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "description": "Il check-in serale di Biohacking Quotidiano per capire cosa ha funzionato oggi e cosa correggere domani."
   }
 }

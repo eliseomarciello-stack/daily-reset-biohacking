@@ -12,6 +12,16 @@ export default function Root({ children }: PropsWithChildren) {
           name="viewport"
           content="width=device-width, initial-scale=1, shrink-to-fit=no"
         />
+
+        <meta name="theme-color" content="#2F8C86" />
+        <meta name="application-name" content="Daily Reset" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content="Daily Reset" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <script dangerouslySetInnerHTML={{ __html: serviceWorkerRegistration }} />
         <meta name="google" content="notranslate" />
         <meta httpEquiv="Content-Language" content="it" />
         {/*
@@ -49,3 +59,14 @@ export default function Root({ children }: PropsWithChildren) {
     </html>
   );
 }
+
+
+const serviceWorkerRegistration = `
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function (error) {
+      console.warn('Service worker registration failed:', error);
+    });
+  });
+}
+`;
